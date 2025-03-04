@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",                   // 包括工作区的所有子目录
+                "/opt/ros/noetic/include/**",              // ROS Noetic 的头文件路径
+                "/home/prodefi/LegarmrobotCOI/devel/include/**",   // 您的 ROS 工作空间路径（如果适用）
+                "/usr/include/**",                         // 系统默认头文件路径
+                "/usr/local/include/**"                    // 系统其他路径
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
