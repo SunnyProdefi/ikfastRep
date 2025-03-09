@@ -15,8 +15,8 @@ int main(int argc, char** argv)
         tf::StampedTransform transform;
         try
         {
-            // 获取 base_link 到 flan 的变换
-            listener.lookupTransform("base_link", "Link2_6", ros::Time(0), transform);
+            // 获取 world 到 flan 的变换
+            listener.lookupTransform("world", "Link2_6", ros::Time(0), transform);
 
             // 打印变换的平移部分和旋转部分
             tf::Matrix3x3 rotation_matrix(transform.getRotation());
@@ -45,7 +45,7 @@ int main(int argc, char** argv)
             transform_matrix(2, 3) = transform.getOrigin().z();
 
             // 输出4x4矩阵
-            ROS_INFO_STREAM("Transformation Matrix (base_link -> Link2_6):");
+            ROS_INFO_STREAM("Transformation Matrix (world -> Link2_6):");
             std::cout << transform_matrix << std::endl;
         }
         catch (tf::TransformException& ex)

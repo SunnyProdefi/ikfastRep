@@ -225,3 +225,8 @@ add_executable(joint_control_node src/joint_control_node.cpp)
 target_link_libraries(joint_control_node
     ${catkin_LIBRARIES}
 )
+
+add_executable(float_dual_joint_control_node src/float_dual_joint_control_node.cpp)
+target_link_libraries(float_dual_joint_control_node
+    ${catkin_LIBRARIES}
+)
