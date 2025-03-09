@@ -220,3 +220,8 @@ add_executable(floating_joint_control_node src/floating_joint_control_node.cpp)
 target_link_libraries(floating_joint_control_node
     ${catkin_LIBRARIES}
 )
+
+add_executable(joint_control_node src/joint_control_node.cpp)
+target_link_libraries(joint_control_node
+    ${catkin_LIBRARIES}
+)
