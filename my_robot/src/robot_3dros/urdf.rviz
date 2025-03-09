@@ -120,7 +120,7 @@ Visualization Manager:
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         Link1_1:
           Value: true
         Link1_2:
@@ -136,7 +136,7 @@ Visualization Manager:
         base_link:
           Value: true
         flan:
-          Value: true
+          Value: false
         world:
           Value: true
       Marker Alpha: 1
@@ -222,5 +222,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1267
-  X: 40
-  Y: -5
+  X: 767
+  Y: 85
