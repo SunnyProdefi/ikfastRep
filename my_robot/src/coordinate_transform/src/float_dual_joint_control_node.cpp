@@ -3,6 +3,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/JointState.h>
 #include <array>
+#include <vector>
 #include <string>
 
 enum JointID : int
@@ -13,82 +14,100 @@ enum JointID : int
     JOINT2_4,
     JOINT2_5,
     JOINT2_6,
-
     JOINT3_1,
     JOINT3_2,
     JOINT3_3,
     JOINT3_4,
     JOINT3_5,
     JOINT3_6,
-
     JOINT_COUNT
 };
 
-// 将枚举 ID 与具体关节名称一一对应
 static const std::array<std::string, JOINT_COUNT> JOINT_NAMES = {"Joint2_1", "Joint2_2", "Joint2_3", "Joint2_4", "Joint2_5", "Joint2_6", "Joint3_1", "Joint3_2", "Joint3_3", "Joint3_4", "Joint3_5", "Joint3_6"};
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "joint_control_node");
+    ros::init(argc, argv, "float_dual_joint_control_node");
     ros::NodeHandle nh;
-
-    // 创建 JointState 发布器
     ros::Publisher joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
 
-    // 准备 JointState 消息
     sensor_msgs::JointState joint_msg;
     joint_msg.name.resize(JOINT_COUNT);
     joint_msg.position.resize(JOINT_COUNT);
-
-    // 将关节名拷贝到消息中
     for (int i = 0; i < JOINT_COUNT; ++i)
     {
         joint_msg.name[i] = JOINT_NAMES[i];
     }
 
-    // 设置关节初始位置
-    joint_msg.position[JOINT2_1] = -0.422489;
-    joint_msg.position[JOINT2_2] = 0.309904;
-    joint_msg.position[JOINT2_3] = -0.0735355;
-    joint_msg.position[JOINT2_4] = -0.0435693;
-    joint_msg.position[JOINT2_5] = -0.0224282;
-    joint_msg.position[JOINT2_6] = 0.258911;
+    // 初始关节位姿
+    std::array<double, JOINT_COUNT> init_positions = {-0.5236, -0.7854, -1.5708, -0.7854, -1.0472, -0.2618, 0.5236, -0.7854, -1.5708, 0.7854, -1.0472, 0.2618};
 
-    joint_msg.position[JOINT3_1] = 0.38897;
-    joint_msg.position[JOINT3_2] = 0.393305;
-    joint_msg.position[JOINT3_3] = -0.163173;
-    joint_msg.position[JOINT3_4] = 0.272361;
-    joint_msg.position[JOINT3_5] = 0.177097;
-    joint_msg.position[JOINT3_6] = -0.209306;
+    // 目标关节位姿
+    std::array<double, JOINT_COUNT> goal_positions = {-0.356351, -0.816277, -1.37537, -0.8114, -0.0857247, -0.2862287, 0.356607, -0.816145, -1.37504, 0.812594, -0.0869601, 0.285634};
 
-    // 创建 TF 变换广播器
+    joint_msg.position.assign(init_positions.begin(), init_positions.end());
+
+    std::vector<double> init_positions_vec(init_positions.begin(), init_positions.end());
+    std::vector<double> goal_positions_vec(goal_positions.begin(), goal_positions.end());
+
+    // TF 变换
     static tf::TransformBroadcaster br;
-
-    // 可以将恒定坐标与姿态放在循环外部，避免重复赋值
     tf::Transform transform;
-    transform.setOrigin(tf::Vector3(0.115411, -0.0814905, 0.437057));
+    transform.setOrigin(tf::Vector3(0, 0, 0.5));
 
-    // // 这里使用一个单位四元数，表示无旋转
-    // tf::Quaternion q;
-    // q.setRPY(0.0, 0.0, 0.0);
-    // transform.setRotation(q);
-
-    // 这里使用一个单位四元数，表示无旋转
-    tf::Quaternion q;
-    q.setX(-0.0606923);
-    q.setY(0.476322);
-    q.setZ(-0.025329);
-    q.setW(0.876808);
+    tf::Quaternion q(0, 0.7071, 0, 0.7071);
+    q.normalize();
     transform.setRotation(q);
 
-    ros::Rate rate(50);  // 50Hz
+    tf::Vector3 init_translation(0, 0, 0.5);
+    tf::Quaternion init_rotation = q;
+
+    tf::Vector3 target_translation(0.430362, 0, 0.382518);
+    tf::Quaternion target_rotation(-0.000166733, 0.792409, -0.000239329, 0.609991);
+    target_rotation.normalize();
+
+    ros::Rate rate(50);
+    double alpha = 0.02;
+    bool moving_to_goal = true;  // 方向标志
 
     while (ros::ok())
     {
-        // 获取当前时间戳
         ros::Time current_time = ros::Time::now();
 
-        // 填充并发布 TF 变换消息
+        // 关节插值
+        std::vector<double>& current_target = moving_to_goal ? goal_positions_vec : init_positions_vec;
+        bool joint_reached = true;
+
+        for (int i = 0; i < JOINT_COUNT; ++i)
+        {
+            double new_pos = (1 - alpha) * joint_msg.position[i] + alpha * current_target[i];
+            joint_msg.position[i] = new_pos;
+
+            if (fabs(new_pos - current_target[i]) > 0.01)  // 允许的误差
+                joint_reached = false;
+        }
+
+        // TF 变换插值
+        tf::Vector3& tf_target_translation = moving_to_goal ? target_translation : init_translation;
+        tf::Quaternion& tf_target_rotation = moving_to_goal ? target_rotation : init_rotation;
+
+        tf::Vector3 new_translation = (1 - alpha) * transform.getOrigin() + alpha * tf_target_translation;
+        tf::Quaternion new_rotation = transform.getRotation().slerp(tf_target_rotation, alpha);
+
+        transform.setOrigin(new_translation);
+        transform.setRotation(new_rotation);
+
+        // 检测 TF 是否到达目标
+        bool tf_reached = (transform.getOrigin() - tf_target_translation).length() < 0.01 && transform.getRotation().angle(tf_target_rotation) < 0.01;
+
+        // 如果关节和TF都到达目标位置，则反转方向
+        if (joint_reached && tf_reached)
+        {
+            moving_to_goal = !moving_to_goal;
+            ROS_INFO_STREAM("Switching direction: " << (moving_to_goal ? "Moving to goal" : "Returning to init"));
+        }
+
+        // 发布 TF
         geometry_msgs::TransformStamped t;
         t.header.stamp = current_time;
         t.header.frame_id = "world";
@@ -102,7 +121,7 @@ int main(int argc, char** argv)
         t.transform.rotation.w = transform.getRotation().w();
         br.sendTransform(t);
 
-        // 发布 JointState 消息
+        // 发布 JointState
         joint_msg.header.stamp = current_time;
         joint_pub.publish(joint_msg);
 
