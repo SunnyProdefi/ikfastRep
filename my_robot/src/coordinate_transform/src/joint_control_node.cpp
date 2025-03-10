@@ -46,20 +46,35 @@ int main(int argc, char** argv)
         joint_msg.name[i] = JOINT_NAMES[i];
     }
 
-    // 设置关节初始位置
-    joint_msg.position[JOINT2_1] = -0.000106539;
-    joint_msg.position[JOINT2_2] = 0.00128908;
-    joint_msg.position[JOINT2_3] = 0.0025292;
-    joint_msg.position[JOINT2_4] = -0.13882;
-    joint_msg.position[JOINT2_5] = -0.00124407;
-    joint_msg.position[JOINT2_6] = 0.13882;
+    // // 设置关节初始位置
+    // joint_msg.position[JOINT2_1] = -30.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT2_2] = -45.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT2_3] = -90.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT2_4] = -45.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT2_5] = -60 * M_PI / 180.0;
+    // joint_msg.position[JOINT2_6] = -15.0 * M_PI / 180.0;
 
-    joint_msg.position[JOINT3_1] = 0;
-    joint_msg.position[JOINT3_2] = 0;
-    joint_msg.position[JOINT3_3] = 0;
-    joint_msg.position[JOINT3_4] = 0.25;
-    joint_msg.position[JOINT3_5] = 0;
-    joint_msg.position[JOINT3_6] = -0.25;
+    // joint_msg.position[JOINT3_1] = 30.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT3_2] = -45.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT3_3] = -90.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT3_4] = 45.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT3_5] = -60.0 * M_PI / 180.0;
+    // joint_msg.position[JOINT3_6] = 15.0 * M_PI / 180.0;
+
+    // 设置关节末端位置
+    joint_msg.position[JOINT2_1] = -30.0 * M_PI / 180.0;
+    joint_msg.position[JOINT2_2] = -45.0 * M_PI / 180.0;
+    joint_msg.position[JOINT2_3] = -90.0 * M_PI / 180.0;
+    joint_msg.position[JOINT2_4] = -45.0 * M_PI / 180.0;
+    joint_msg.position[JOINT2_5] = 0 * M_PI / 180.0;
+    joint_msg.position[JOINT2_6] = -15.0 * M_PI / 180.0;
+
+    joint_msg.position[JOINT3_1] = 30.0 * M_PI / 180.0;
+    joint_msg.position[JOINT3_2] = -45.0 * M_PI / 180.0;
+    joint_msg.position[JOINT3_3] = -90.0 * M_PI / 180.0;
+    joint_msg.position[JOINT3_4] = 45.0 * M_PI / 180.0;
+    joint_msg.position[JOINT3_5] = 0 * M_PI / 180.0;
+    joint_msg.position[JOINT3_6] = 15.0 * M_PI / 180.0;
 
     ros::Rate rate(50);  // 50Hz
 
