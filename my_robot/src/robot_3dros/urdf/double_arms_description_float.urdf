@@ -11,7 +11,7 @@
     <parent link="world"/>
     <child link="truss_link"/>
     <!-- 如果需要在世界坐标系中给 truss_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
-    <origin xyz="0.9275 0 0" rpy="1.5708 0 3.1415"/>
+    <origin xyz="0.6625 0 0" rpy="1.5708 0 3.1415"/>
   </joint>
 
   <link name="truss_link">
