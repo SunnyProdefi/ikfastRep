@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     ros::Rate rate(50);
     double alpha = 0.02;
     double time_elapsed = 0.0;
-    double switch_time = 5.0;  // 每 5 秒切换方向
+    double switch_time = 10.0;  // 每 5 秒切换方向
     bool moving_to_goal = true;
 
     while (ros::ok())

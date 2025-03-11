@@ -4,8 +4,55 @@
   <joint name="world_joint" type="floating">
     <parent link="world"/>
     <child  link="base_link"/>
-    <origin xyz="0 0 0.5" rpy="0 1.5708 0"/>
+    <origin xyz="0 0 0.5" rpy="1.5708 1.5708 0"/>
   </joint>
+
+  <joint name="world_to_truss_link" type="fixed">
+    <parent link="world"/>
+    <child link="truss_link"/>
+    <!-- 如果需要在世界坐标系中给 truss_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <origin xyz="0.9275 0 0" rpy="1.5708 0 3.1415"/>
+  </joint>
+
+  <link name="truss_link">
+    <inertial>
+      <origin
+        xyz="0.36747875296263 -0.0267703008644749 2.17639122268576E-06"
+        rpy="0 0 0" />
+      <mass
+        value="21.7746312239973" />
+      <inertia
+        ixx="6.13854571738268"
+        ixy="0.0126716758688149"
+        ixz="-0.000126373819517297"
+        iyy="16.7375552194284"
+        iyz="-1.43555608026521E-06"
+        izz="10.6624119014708" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://truss/meshes/truss_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://truss/meshes/truss_link.STL" />
+      </geometry>
+    </collision>
+  </link>
 
   <link name="base_link">
     <inertial>
