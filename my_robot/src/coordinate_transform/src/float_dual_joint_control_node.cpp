@@ -1,10 +1,13 @@
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/JointState.h>
+#include <yaml-cpp/yaml.h>
 #include <array>
 #include <vector>
 #include <string>
+#include <fstream>
 
 enum JointID : int
 {
@@ -25,69 +28,77 @@ enum JointID : int
 
 static const std::array<std::string, JOINT_COUNT> JOINT_NAMES = {"Joint2_1", "Joint2_2", "Joint2_3", "Joint2_4", "Joint2_5", "Joint2_6", "Joint3_1", "Joint3_2", "Joint3_3", "Joint3_4", "Joint3_5", "Joint3_6"};
 
+void loadJointData(const std::string& filename, std::vector<double>& init_positions, std::vector<double>& goal_positions, tf::Vector3& init_translation, tf::Quaternion& init_rotation, tf::Vector3& target_translation, tf::Quaternion& target_rotation)
+{
+    std::string yaml_path = ros::package::getPath("coordinate_transform") + "/config/joint_angle.yaml";
+    YAML::Node config = YAML::LoadFile(yaml_path);
+
+    if (config["init_joint_angles"] && config["joint_angles"])
+    {
+        init_positions = config["init_joint_angles"].as<std::vector<double>>();
+        goal_positions = config["joint_angles"].as<std::vector<double>>();
+    }
+    if (config["init_floating_base"] && config["floating_base"])
+    {
+        std::vector<double> init_fb = config["init_floating_base"].as<std::vector<double>>();
+        std::vector<double> goal_fb = config["floating_base"].as<std::vector<double>>();
+
+        init_translation = tf::Vector3(init_fb[0], init_fb[1], init_fb[2]);
+        init_rotation = tf::Quaternion(init_fb[3], init_fb[4], init_fb[5], init_fb[6]);
+        init_rotation.normalize();
+
+        target_translation = tf::Vector3(goal_fb[0], goal_fb[1], goal_fb[2]);
+        target_rotation = tf::Quaternion(goal_fb[3], goal_fb[4], goal_fb[5], goal_fb[6]);
+        target_rotation.normalize();
+    }
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "float_dual_joint_control_node");
     ros::NodeHandle nh;
     ros::Publisher joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
 
+    std::vector<double> init_positions, goal_positions;
+    tf::Vector3 init_translation, target_translation;
+    tf::Quaternion init_rotation, target_rotation;
+
+    loadJointData("../config/joint_angle.yaml", init_positions, goal_positions, init_translation, init_rotation, target_translation, target_rotation);
+
     sensor_msgs::JointState joint_msg;
-    joint_msg.name.resize(JOINT_COUNT);
-    joint_msg.position.resize(JOINT_COUNT);
-    for (int i = 0; i < JOINT_COUNT; ++i)
-    {
-        joint_msg.name[i] = JOINT_NAMES[i];
-    }
-
-    // 初始关节位姿
-    std::array<double, JOINT_COUNT> init_positions = {-0.5236, -0.7854, -1.5708, -0.7854, -1.0472, -0.2618, 0.5236, -0.7854, -1.5708, 0.7854, -1.0472, 0.2618};
-
-    // 目标关节位姿
-    std::array<double, JOINT_COUNT> goal_positions = {-0.356351, -0.816277, -1.37537, -0.8114, -0.0857247, -0.2862287, 0.356607, -0.816145, -1.37504, 0.812594, -0.0869601, 0.285634};
-
+    joint_msg.name.assign(JOINT_NAMES.begin(), JOINT_NAMES.end());
     joint_msg.position.assign(init_positions.begin(), init_positions.end());
 
-    std::vector<double> init_positions_vec(init_positions.begin(), init_positions.end());
-    std::vector<double> goal_positions_vec(goal_positions.begin(), goal_positions.end());
-
-    // TF 变换
     static tf::TransformBroadcaster br;
     tf::Transform transform;
-    transform.setOrigin(tf::Vector3(0, 0, 0.5));
-
-    tf::Quaternion q(0, 0.7071, 0, 0.7071);
-    q.normalize();
-    transform.setRotation(q);
-
-    tf::Vector3 init_translation(0, 0, 0.5);
-    tf::Quaternion init_rotation = q;
-
-    tf::Vector3 target_translation(0.430362, 0, 0.382518);
-    tf::Quaternion target_rotation(-0.000166733, 0.792409, -0.000239329, 0.609991);
-    target_rotation.normalize();
+    transform.setOrigin(init_translation);
+    transform.setRotation(init_rotation);
 
     ros::Rate rate(50);
     double alpha = 0.02;
-    bool moving_to_goal = true;  // 方向标志
+    double time_elapsed = 0.0;
+    double switch_time = 5.0;  // 每 5 秒切换方向
+    bool moving_to_goal = true;
 
     while (ros::ok())
     {
         ros::Time current_time = ros::Time::now();
+        time_elapsed += rate.expectedCycleTime().toSec();
+        std::cout << "time_elapsed: " << time_elapsed << std::endl;
 
-        // 关节插值
-        std::vector<double>& current_target = moving_to_goal ? goal_positions_vec : init_positions_vec;
-        bool joint_reached = true;
-
-        for (int i = 0; i < JOINT_COUNT; ++i)
+        if (time_elapsed >= switch_time)
         {
-            double new_pos = (1 - alpha) * joint_msg.position[i] + alpha * current_target[i];
-            joint_msg.position[i] = new_pos;
-
-            if (fabs(new_pos - current_target[i]) > 0.01)  // 允许的误差
-                joint_reached = false;
+            moving_to_goal = !moving_to_goal;
+            time_elapsed = 0.0;
+            ROS_INFO_STREAM("Switching direction: " << (moving_to_goal ? "Moving to goal" : "Returning to init"));
         }
 
-        // TF 变换插值
+        std::vector<double>& current_target = moving_to_goal ? goal_positions : init_positions;
+        for (int i = 0; i < JOINT_COUNT; ++i)
+        {
+            joint_msg.position[i] = (1 - alpha) * joint_msg.position[i] + alpha * current_target[i];
+        }
+
         tf::Vector3& tf_target_translation = moving_to_goal ? target_translation : init_translation;
         tf::Quaternion& tf_target_rotation = moving_to_goal ? target_rotation : init_rotation;
 
@@ -97,17 +108,6 @@ int main(int argc, char** argv)
         transform.setOrigin(new_translation);
         transform.setRotation(new_rotation);
 
-        // 检测 TF 是否到达目标
-        bool tf_reached = (transform.getOrigin() - tf_target_translation).length() < 0.01 && transform.getRotation().angle(tf_target_rotation) < 0.01;
-
-        // 如果关节和TF都到达目标位置，则反转方向
-        if (joint_reached && tf_reached)
-        {
-            moving_to_goal = !moving_to_goal;
-            ROS_INFO_STREAM("Switching direction: " << (moving_to_goal ? "Moving to goal" : "Returning to init"));
-        }
-
-        // 发布 TF
         geometry_msgs::TransformStamped t;
         t.header.stamp = current_time;
         t.header.frame_id = "world";
@@ -121,7 +121,6 @@ int main(int argc, char** argv)
         t.transform.rotation.w = transform.getRotation().w();
         br.sendTransform(t);
 
-        // 发布 JointState
         joint_msg.header.stamp = current_time;
         joint_pub.publish(joint_msg);
 

@@ -7,11 +7,15 @@ project(coordinate_transform)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+set(yaml-cpp_DIR "/usr/lib/x86_64-linux-gnu/cmake/yaml-cpp")
+find_package(yaml-cpp REQUIRED CONFIG)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   rospy
   tf
+  yaml-cpp
+  roslib
 )
 
 ## System dependencies are found with CMake's conventions
@@ -214,19 +218,27 @@ add_executable(coordinate_transform_node src/coordinate_transform_node.cpp)
 
 target_link_libraries(coordinate_transform_node
   ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
 )
 
 add_executable(floating_joint_control_node src/floating_joint_control_node.cpp)
 target_link_libraries(floating_joint_control_node
-    ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
 )
 
 add_executable(joint_control_node src/joint_control_node.cpp)
 target_link_libraries(joint_control_node
-    ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
 )
 
 add_executable(float_dual_joint_control_node src/float_dual_joint_control_node.cpp)
 target_link_libraries(float_dual_joint_control_node
-    ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
 )
