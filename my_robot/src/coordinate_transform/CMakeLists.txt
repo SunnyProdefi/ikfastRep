@@ -242,3 +242,10 @@ target_link_libraries(float_dual_joint_control_node
   yaml-cpp
   ${roslib_LIBRARIES}
 )
+
+add_executable(leg_transform src/leg_transform.cpp)
+target_link_libraries(leg_transform
+  ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
+)
