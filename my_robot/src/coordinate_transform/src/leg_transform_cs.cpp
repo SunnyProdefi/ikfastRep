@@ -58,20 +58,18 @@ Eigen::Matrix4f parseTransformMatrix(const YAML::Node& node)
     return transform;
 }
 
-// **保存计算结果到 leg_ik.yaml**
-void saveToYAML(const std::string& filename, const Eigen::Matrix4f& tf_link1_0_flan1, const Eigen::Matrix4f& tf_link4_0_flan4)
+// **保存计算结果到 leg_ik_cs.yaml**
+void saveToYAML(const std::string& filename, const std::vector<Eigen::Matrix4f>& all_tf_link1_0_flan1, const std::vector<Eigen::Matrix4f>& all_tf_link4_0_flan4)
 {
     YAML::Node root;
 
-    // 处理两个转换矩阵
-    for (int i = 0; i < 2; i++)
+    // 遍历每个步骤，将数据存储在 YAML 结构中
+    for (int step = 0; step < all_tf_link1_0_flan1.size(); ++step)
     {
-        Eigen::Matrix4f tf = (i == 0) ? tf_link1_0_flan1 : tf_link4_0_flan4;
-        std::string name = (i == 0) ? "tf_mat_link1_0_flan1" : "tf_mat_link4_0_flan4";
-
         YAML::Node tf_data;
 
-        // **修正 Position 存储**
+        // 处理 tf_mat_link1_0_flan1
+        Eigen::Matrix4f tf = all_tf_link1_0_flan1[step];
         YAML::Node position;
         position.push_back(tf(0, 3));
         position.push_back(tf(1, 3));
@@ -79,7 +77,7 @@ void saveToYAML(const std::string& filename, const Eigen::Matrix4f& tf_link1_0_f
         position.SetStyle(YAML::EmitterStyle::Flow);
         tf_data["position"] = position;
 
-        // **修正 Orientation 存储**
+        // 旋转矩阵
         YAML::Node orientation;
         for (int r = 0; r < 3; ++r)
         {
@@ -93,17 +91,42 @@ void saveToYAML(const std::string& filename, const Eigen::Matrix4f& tf_link1_0_f
         }
         tf_data["orientation"] = orientation;
 
-        // **保存到 YAML 结构**
-        root[name]["target_pose"] = tf_data;
+        root["step_" + std::to_string(step)]["tf_mat_link1_0_flan1"]["target_pose"] = tf_data;
+
+        // 处理 tf_mat_link4_0_flan4
+        tf = all_tf_link4_0_flan4[step];
+        tf_data = YAML::Node();  // 使用新的空节点替代清空操作
+
+        position = YAML::Node();  // 重新创建空节点
+        position.push_back(tf(0, 3));
+        position.push_back(tf(1, 3));
+        position.push_back(tf(2, 3));
+        position.SetStyle(YAML::EmitterStyle::Flow);
+        tf_data["position"] = position;
+
+        orientation = YAML::Node();  // 重新创建空节点
+        for (int r = 0; r < 3; ++r)
+        {
+            YAML::Node row;
+            for (int c = 0; c < 3; ++c)
+            {
+                row.push_back(tf(r, c));
+            }
+            row.SetStyle(YAML::EmitterStyle::Flow);
+            orientation.push_back(row);
+        }
+        tf_data["orientation"] = orientation;
+
+        root["step_" + std::to_string(step)]["tf_mat_link4_0_flan4"]["target_pose"] = tf_data;
     }
 
-    // **写入 YAML 文件**
+    // 一次性写入 YAML 文件
     std::ofstream file_out(filename);
     if (file_out.is_open())
     {
-        file_out << root;
+        file_out << root;  // 将数据写入文件
         file_out.close();
-        ROS_INFO_STREAM("Saved computed transformations to " << filename);
+        ROS_INFO_STREAM("Saved all transformations to " << filename);
     }
     else
     {
@@ -178,9 +201,10 @@ int main(int argc, char** argv)
     Eigen::Matrix4f tf_mat_base_link1_0 = parseTransformMatrix(tf_using_yaml["tf_mat_base_link1_0"]);
     Eigen::Matrix4f tf_mat_base_link4_0 = parseTransformMatrix(tf_using_yaml["tf_mat_base_link4_0"]);
 
-    // YAML 输出节点
-    YAML::Node output_yaml;
+    std::vector<Eigen::Matrix4f> all_tf_link1_0_flan1;
+    std::vector<Eigen::Matrix4f> all_tf_link4_0_flan4;
 
+    // **遍历所有插值矩阵，计算 flan1 和 flan4 的变换**
     for (int i = 0; i < point; ++i)
     {
         const Eigen::Matrix4f& tf_interp = interpolated_poses[i];
@@ -195,30 +219,16 @@ int main(int argc, char** argv)
         // 计算 link4_0 下的 flan4
         Eigen::Matrix4f tf_mat_link4_0_flan4 = tf_mat_base_link4_0.inverse() * tf_mat_base_flan4;
 
-        // 写入到 YAML 节点
-        YAML::Node entry;
-        for (int r = 0; r < 4; ++r)
-        {
-            YAML::Node row1, row4;
-            for (int c = 0; c < 4; ++c)
-            {
-                row1.push_back(tf_mat_link1_0_flan1(r, c));
-                row4.push_back(tf_mat_link4_0_flan4(r, c));
-            }
-            entry["tf_mat_link1_0_flan1"].push_back(row1);
-            entry["tf_mat_link4_0_flan4"].push_back(row4);
-        }
-
-        // 添加时间步（或序号）作为键
-        output_yaml["step_" + std::to_string(i)] = entry;
+        // 将结果存储到向量中
+        all_tf_link1_0_flan1.push_back(tf_mat_link1_0_flan1);
+        all_tf_link4_0_flan4.push_back(tf_mat_link4_0_flan4);
     }
 
-    // 最终写入 YAML 文件
-    std::ofstream fout(output_file);
-    fout << output_yaml;
-    fout.close();
+    // **保存计算结果到 YAML**
+    saveToYAML(output_file, all_tf_link1_0_flan1, all_tf_link4_0_flan4);
 
-    ROS_INFO("All interpolated transformations saved to leg_ik_cs.yaml!");
+    ROS_INFO("All computed transformations saved to leg_ik_cs.yaml!");
+
     ros::spin();
     return 0;
 }
