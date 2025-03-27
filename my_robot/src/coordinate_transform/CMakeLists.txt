@@ -249,3 +249,10 @@ target_link_libraries(leg_transform
   yaml-cpp
   ${roslib_LIBRARIES}
 )
+
+add_executable(leg_transform_cs src/leg_transform_cs.cpp)
+target_link_libraries(leg_transform_cs
+  ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
+)
