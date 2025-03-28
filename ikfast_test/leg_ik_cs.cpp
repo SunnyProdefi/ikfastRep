@@ -69,19 +69,30 @@ std::vector<std::vector<float>> loadEEPosesFromYAML(const std::string& filename,
     return all_poses;
 }
 
-// **计算欧几里得距离**
+// 将角度归一化到 [0, 2π)
+float normalizeAngle(float angle)
+{
+    const float TWO_PI = 2.0f * static_cast<float>(M_PI);
+    return fmod(angle + TWO_PI, TWO_PI);
+}
+
+// 欧几里得距离计算
 float calculateDistance(const std::vector<float>& a, const std::vector<float>& b)
 {
     float distance = 0.0f;
     for (size_t i = 0; i < a.size(); ++i)
     {
-        distance += std::pow(a[i] - b[i], 2);
+        float diff = a[i] - b[i];
+        distance += diff * diff;
     }
     return std::sqrt(distance);
 }
 
-// **计算所有解，并找到最优解**
-std::pair<std::vector<std::vector<float>>, std::vector<float>> findAllSolutions(const std::vector<float>& ik_results, const std::vector<float>& initial_q, size_t num_joints)
+// 计算所有解，并找到最优解（并对第4个关节归一化后替换原数据）
+std::pair<std::vector<std::vector<float>>, std::vector<float>> findAllSolutions(std::vector<float>& ik_results,       // 输入所有 IK 解的一维向量
+                                                                                const std::vector<float>& initial_q,  // 初始关节角
+                                                                                size_t num_joints                     // 关节数量
+)
 {
     std::vector<std::vector<float>> all_solutions;
     std::vector<float> closest_solution;
@@ -89,9 +100,29 @@ std::pair<std::vector<std::vector<float>>, std::vector<float>> findAllSolutions(
 
     for (size_t i = 0; i < ik_results.size(); i += num_joints)
     {
+        // 索引安全检查
+        if (i + num_joints > ik_results.size())
+            break;
+
+        // 获取第4个关节角度（index = 3）
+        size_t joint4_index = i + 3;
+        if (joint4_index < ik_results.size())
+        {
+            float joint4_angle = ik_results[joint4_index];
+
+            // ✅ 判断是否接近 ±π，若是则归一化
+            if (std::abs(std::abs(joint4_angle) - static_cast<float>(M_PI)) < 1.0f)
+            {
+                float normalized = normalizeAngle(joint4_angle);
+                ik_results[joint4_index] = normalized;
+            }
+        }
+
+        // 构造当前解
         std::vector<float> solution(ik_results.begin() + i, ik_results.begin() + i + num_joints);
         all_solutions.push_back(solution);
 
+        // 计算距离并判断是否为最优解
         float distance = calculateDistance(initial_q, solution);
         if (distance < min_distance)
         {
@@ -99,6 +130,7 @@ std::pair<std::vector<std::vector<float>>, std::vector<float>> findAllSolutions(
             closest_solution = solution;
         }
     }
+
     return {all_solutions, closest_solution};
 }
 

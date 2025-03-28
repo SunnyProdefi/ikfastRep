@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/ik_arm.dir/main_arm.cpp.o -o ik_arm  -lm /usr/lib/x86_64-linux-gnu/liblapack.so /usr/lib/x86_64-linux-gnu/libblas.so /usr/lib/x86_64-linux-gnu/libblas.so

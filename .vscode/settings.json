@@ -55,6 +55,11 @@
         "map": "cpp",
         "set": "cpp",
         "ratio": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "deque": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "mutex": "cpp",
+        "typeindex": "cpp"
     }
 }
