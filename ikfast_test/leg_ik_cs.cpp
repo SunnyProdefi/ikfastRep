@@ -191,8 +191,8 @@ void saveResultToYAML(const std::string& filename, const std::vector<std::vector
 int main()
 {
     // **从 YAML 读取多个 ee_pose**
-    std::string yaml_file = "../../my_robot/src/coordinate_transform/config/leg_ik_cs.yaml";
-    std::string result_path = "../../my_robot/src/coordinate_transform/config/result_cs.yaml";
+    std::string yaml_file = "../../my_robot/src/my_robot_coordinate_transform/config/leg_ik_cs.yaml";
+    std::string result_path = "../../my_robot/src/my_robot_coordinate_transform/config/result_cs.yaml";
     std::string tf_mat_link1_0_flan1 = "tf_mat_link1_0_flan1";
     std::string tf_mat_link4_0_flan4 = "tf_mat_link4_0_flan4";
 
@@ -210,7 +210,7 @@ int main()
     robots::Kinematics kinematics;
 
     // **初始化关节角**
-    std::vector<float> leg_l_q_init = {1.597727, 0.295055, 2.156446, 0.040097, 0.494959, 3.125349};
+    std::vector<float> leg_l_q_init = {1.597727, 0.295055, 2.156446, 3.101495, -0.494894, -0.016370};
     std::vector<float> leg_r_q_init = {-1.597727, 0.295055, 2.156446, -0.040097, 0.494959, 0.016244};
 
     std::vector<std::vector<std::vector<float>>> all_left_solutions;

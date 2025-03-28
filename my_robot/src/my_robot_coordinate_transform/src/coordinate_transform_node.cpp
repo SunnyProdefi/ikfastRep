@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "coordinate_transform_node");
+    ros::init(argc, argv, "my_robot_coordinate_transform_node");
     ros::NodeHandle nh;
 
     tf::TransformListener listener;

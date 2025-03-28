@@ -5,7 +5,7 @@
 #include <ros/package.h>
 
 // **加载 YAML 文件**
-std::string package_path = ros::package::getPath("coordinate_transform");
+std::string package_path = ros::package::getPath("my_robot_coordinate_transform");
 std::string floating_base_file = package_path + "/config/floating_base.yaml";
 std::string tf_using_file = package_path + "/config/tf_using.yaml";
 std::string output_file = package_path + "/config/leg_ik_cs.yaml";

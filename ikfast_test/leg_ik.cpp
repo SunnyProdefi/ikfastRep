@@ -165,8 +165,8 @@ void saveResultToYAML(const std::string& filename, const std::vector<std::vector
 int main()
 {
     // **从 YAML 读取 ee_pose**
-    std::string yaml_file = "../../my_robot/src/coordinate_transform/config/leg_ik.yaml";
-    std::string result_path = "../../my_robot/src/coordinate_transform/config/result.yaml";
+    std::string yaml_file = "../../my_robot/src/my_robot_coordinate_transform/config/leg_ik.yaml";
+    std::string result_path = "../../my_robot/src/my_robot_coordinate_transform/config/result.yaml";
     std::string tf_mat_link1_0_flan1 = "tf_mat_link1_0_flan1";
     std::string tf_mat_link4_0_flan4 = "tf_mat_link4_0_flan4";
     std::vector<float> ee_pose_l = loadEEPoseFromYAML(yaml_file, tf_mat_link1_0_flan1);

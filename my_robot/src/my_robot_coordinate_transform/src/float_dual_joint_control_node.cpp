@@ -30,7 +30,7 @@ static const std::array<std::string, JOINT_COUNT> JOINT_NAMES = {"Joint2_1", "Jo
 
 void loadJointData(const std::string& filename, std::vector<double>& init_positions, std::vector<double>& goal_positions, tf::Vector3& init_translation, tf::Quaternion& init_rotation, tf::Vector3& target_translation, tf::Quaternion& target_rotation)
 {
-    std::string yaml_path = ros::package::getPath("coordinate_transform") + "/config/joint_angle.yaml";
+    std::string yaml_path = ros::package::getPath("my_robot_coordinate_transform") + "/config/joint_angle.yaml";
     YAML::Node config = YAML::LoadFile(yaml_path);
 
     if (config["init_joint_angles"] && config["joint_angles"])
