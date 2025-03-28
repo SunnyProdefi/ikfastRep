@@ -163,36 +163,67 @@ int main(int argc, char** argv)
     gold_tf_mat_world_base.block<3, 1>(0, 3) = pos_world_base_gold;
 
     std::vector<Eigen::Matrix4f> interpolated_poses;
+    int point_per_stage = 250;
     int point = 1000;
 
-    // 提取平移
+    // 初始与目标位置/旋转
     Eigen::Vector3f pos_init = init_tf_mat_world_base.block<3, 1>(0, 3);
     Eigen::Vector3f pos_gold = gold_tf_mat_world_base.block<3, 1>(0, 3);
-
-    // 提取旋转（转换为四元数）
     Eigen::Matrix3f rot_init = init_tf_mat_world_base.block<3, 3>(0, 0);
     Eigen::Matrix3f rot_gold = gold_tf_mat_world_base.block<3, 3>(0, 0);
     Eigen::Quaternionf q_init(rot_init);
     Eigen::Quaternionf q_gold(rot_gold);
 
-    // 循环插值
-    for (int i = 0; i < point; ++i)
+    // 当前状态初始化
+    Eigen::Vector3f pos_current = pos_init;
+    Eigen::Quaternionf q_current = q_init;
+
+    // 阶段1：插值 Y
+    for (int i = 0; i < point_per_stage; ++i)
     {
-        float t = static_cast<float>(i) / (point - 1);  // t ∈ [0,1]
+        float t = static_cast<float>(i) / (point_per_stage - 1);
+        pos_current.y() = (1 - t) * pos_init.y() + t * pos_gold.y();
 
-        // 平移插值
-        Eigen::Vector3f pos_interp = (1 - t) * pos_init + t * pos_gold;
+        Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+        tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
+        tf.block<3, 1>(0, 3) = pos_current;
+        interpolated_poses.push_back(tf);
+    }
 
-        // 旋转插值（SLERP）
-        Eigen::Quaternionf q_interp = q_init.slerp(t, q_gold);
-        Eigen::Matrix3f rot_interp = q_interp.toRotationMatrix();
+    // 阶段2：插值 X
+    for (int i = 0; i < point_per_stage; ++i)
+    {
+        float t = static_cast<float>(i) / (point_per_stage - 1);
+        pos_current.x() = (1 - t) * pos_init.x() + t * pos_gold.x();
 
-        // 构造插值变换矩阵
-        Eigen::Matrix4f tf_interp = Eigen::Matrix4f::Identity();
-        tf_interp.block<3, 3>(0, 0) = rot_interp;
-        tf_interp.block<3, 1>(0, 3) = pos_interp;
+        Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+        tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
+        tf.block<3, 1>(0, 3) = pos_current;
+        interpolated_poses.push_back(tf);
+    }
 
-        interpolated_poses.push_back(tf_interp);
+    // 阶段3：插值 Z
+    for (int i = 0; i < point_per_stage; ++i)
+    {
+        float t = static_cast<float>(i) / (point_per_stage - 1);
+        pos_current.z() = (1 - t) * pos_init.z() + t * pos_gold.z();
+
+        Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+        tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
+        tf.block<3, 1>(0, 3) = pos_current;
+        interpolated_poses.push_back(tf);
+    }
+
+    // 阶段4：插值旋转（SLERP）
+    for (int i = 0; i < point_per_stage; ++i)
+    {
+        float t = static_cast<float>(i) / (point_per_stage - 1);
+        q_current = q_init.slerp(t, q_gold);
+
+        Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+        tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
+        tf.block<3, 1>(0, 3) = pos_current;  // 平移保持最后的 pos_current
+        interpolated_poses.push_back(tf);
     }
 
     // **读取 TF 变换**
@@ -229,6 +260,5 @@ int main(int argc, char** argv)
 
     ROS_INFO("All computed transformations saved to leg_ik_cs.yaml!");
 
-    ros::spin();
     return 0;
 }
