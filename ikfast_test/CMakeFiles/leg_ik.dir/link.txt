@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/leg_ik.dir/leg_ik.cpp.o -o leg_ik  -lm /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.6.2 /usr/lib/x86_64-linux-gnu/liblapack.so /usr/lib/x86_64-linux-gnu/libblas.so /usr/lib/x86_64-linux-gnu/libblas.so
