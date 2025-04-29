@@ -4,6 +4,36 @@
 #include <limits>                         // 用于 std::numeric_limits
 #include "ikfast_wrapper_single_arm.cpp"  // 替换为包含 Kinematics 类声明的头文件名
 
+struct JointLimit
+{
+    float lower;
+    float upper;
+};
+
+const std::vector<JointLimit> joint_limits = {
+    {-2.3562f, 4.7124f},  // Joint2_1
+    {-2.0944f, 1.5708f},  // Joint2_2
+    {-2.5307f, 2.5307f},  // Joint2_3
+    {-3.1416f, 3.1416f},  // Joint2_4
+    {-1.9199f, 1.9199f},  // Joint2_5
+    {-3.1416f, 3.1416f}   // Joint2_6
+};
+
+bool isSolutionWithinLimits(const std::vector<float>& solution, const std::vector<JointLimit>& limits)
+{
+    if (solution.size() != limits.size())
+        return false;
+
+    for (size_t i = 0; i < solution.size(); ++i)
+    {
+        if (solution[i] < limits[i].lower || solution[i] > limits[i].upper)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 float calculateDistance(const std::vector<float>& a, const std::vector<float>& b)
 {
     float distance = 0.0f;
@@ -19,37 +49,15 @@ int main()
     // 创建一个 Kinematics 对象
     robots::Kinematics kinematics;
 
-    std::vector<float> joint_config = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    std::vector<float> joint_config = {-0.488, 0.171, 2.179, -1.596, -1.238, -0.312};
 
-    // 测试已知的末端执行器旋转矩阵和位移
-    // Link1_0 -> dummy_point1 :
-    // std::vector<float> ee_pose = {// Row 1
-    //                               -1.0f, 9.00563e-05f, 1.0752e-06f, 0.452049f,
-    //                               // Row 2
-    //                               -6.44401e-05f, -0.707112f, -0.707102f, -0.626356f,
-    //                               // Row 3
-    //                               -6.29186e-05f, -0.707102f, 0.707112f, -0.0212478f};
+    std::vector<float> ee_pose = {-0.92778, 0.2269, 0.3023, 0.419, 0.13895, 0.94801, -0.28651, -0.447, -0.35156, -0.22334, -0.91113, -0.096};
 
-    // Link4_0 -> dummy_point2 :
-    // std::vector<float> ee_pose = {-1,           9.52509e-05, 1.07516e-06, 0.45195,    //
-    //                               6.65918e-05,  0.707102,    -0.707112,   -0.626284,  //
-    //                               -6.81133e-05, -0.707112,   -0.707102,   0.021181};
-
-    // Link2_0 -> dummy_point3 :
-    // std::vector<float> ee_pose = {-1, 9.00563e-05, 6.26989e-06, 0.45204, -5.92454e-05, -0.707102, 0.707112, 0.172674, 6.81133e-05, 0.707112, 0.707102, 0.636431};
-
-    // std::vector<float> ee_pose = {-5.836303e-07, 1.673404e-08, 1,
-    //                               0.3467743,  //
-    //                               -0.7071064,    0.7071072,    -4.245215e-07,
-    //                               -0.4866273,  //
-    //                               -0.7071072,    -0.7071064,   -4.008564e-07,
-    //                               -0.03345213};
-    std::vector<float> ee_pose = {-5.836303e-07, -1.673424e-08, 1,
-                                  0.3423186,  //
-                                  -0.7071061,    -0.7071075,    -4.245215e-07,
-                                  -0.4866273,  //
-                                  0.7071075,     -0.7071061,    4.008564e-07,
-                                  0.03118362};
+    // 分支2
+    // std::vector<float> ee_pose = {-5.836303e-07, 1.673404e-08, 1, 0.48, -0.7071064, 0.7071072, -4.245215e-07, -0.43, -0.7071072, -0.7071064, -4.008564e-07, 0.30};
+    // 分支3
+    // 加前减后、加左减右、加上减下
+    // std::vector<float> ee_pose = {-5.836303e-07, -1.673424e-08, 1, 0.48, -0.7071061, -0.7071075, -4.245215e-07, -0.43, 0.7071075, -0.7071061, 4.008564e-07, -0.30};
 
     // 使用正向运动学输出调用逆向运动学函数
     std::vector<float> joint_configs = kinematics.inverse(ee_pose);
@@ -63,7 +71,16 @@ int main()
         for (size_t i = 0; i < joint_configs.size(); i += num_joints)
         {
             std::vector<float> solution(joint_configs.begin() + i, joint_configs.begin() + i + num_joints);
-            // 计算与原始 joint_config 的距离
+
+            // 检查关节是否在限制范围内
+            if (!isSolutionWithinLimits(solution, joint_limits))
+            {
+                std::cout << "Skipped invalid solution (out of joint limits): ";
+                for (float val : solution) std::cout << val << ", ";
+                std::cout << std::endl;
+                continue;
+            }
+
             float distance = calculateDistance(joint_config, solution);
             if (distance < min_distance)
             {
@@ -71,10 +88,10 @@ int main()
                 closest_solution = solution;
             }
 
-            // 输出当前解
+            std::cout << "Valid solution: ";
             for (size_t j = 0; j < solution.size(); ++j)
             {
-                std::cout << solution[j] << " ";
+                std::cout << solution[j] << ", ";
             }
             std::cout << "(Distance: " << distance << ")" << std::endl;
         }
@@ -85,7 +102,7 @@ int main()
             std::cout << "Closest Solution to the Original Joint Configuration:" << std::endl;
             for (size_t i = 0; i < closest_solution.size(); ++i)
             {
-                std::cout << closest_solution[i] << " ";
+                std::cout << closest_solution[i] << ", ";
             }
             std::cout << std::endl << "Minimum Distance: " << min_distance << std::endl;
         }
